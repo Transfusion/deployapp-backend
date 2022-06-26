@@ -1,0 +1,34 @@
+plugins {
+	id 'org.springframework.boot' version '2.7.0-SNAPSHOT'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'java'
+	id "org.jetbrains.kotlin.jvm" version "1.7.0"
+	id "org.jetbrains.kotlin.kapt" version "1.7.0"
+}
+
+group = 'io.github.transfusion'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+	maven { url 'https://repo.spring.io/snapshot' }
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	implementation 'org.mapstruct:mapstruct:1.5.0.Final'
+	annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.0.Final'
+	implementation 'org.postgresql:postgresql'
+	implementation 'org.flywaydb:flyway-core'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+	useJUnitPlatform()
+}
