@@ -33,7 +33,7 @@ public class CorsConfig {
                 for (String url : corsOrigins) {
                     reg.allowedOrigins(url);
                 }
-                reg.allowedHeaders("*").allowCredentials(true);
+                reg.allowedHeaders("*").allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS").allowCredentials(true);
             }
         };
     }

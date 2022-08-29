@@ -80,7 +80,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 //            if (!user.)
 //        }
 
-        CustomUserPrincipal g = CustomUserPrincipal.create(user, oAuth2User.getAttributes());
+        CustomUserPrincipal g = CustomUserPrincipalBuilder.create(user, oAuth2User.getAttributes());
         return g;
     }
 

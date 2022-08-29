@@ -22,7 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(username, username).orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
 
-        return CustomUserPrincipal.create(user);
+        return CustomUserPrincipalBuilder.create(user);
     }
 
 
@@ -30,6 +30,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserById(UUID id) {
         User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
-        return CustomUserPrincipal.create(user);
+        return CustomUserPrincipalBuilder.create(user);
     }
 }
