@@ -6,6 +6,7 @@ import java.util.*
 
 data class S3CredentialDTO(
     val server: String,
+    val awsRegion: String,
     val accessKey: String,
     val secretKey: String,
     val bucket: String,
