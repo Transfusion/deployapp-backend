@@ -60,27 +60,6 @@ public class WebSecurityConfig {
     @Value("${custom_cors.origins}")
     private List<String> corsOrigins;
 
-    /**
-     * Needed specifically for the /api/logout endpoint...
-     */
-    @Bean
-    public CorsFilter corsFilter() {
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true); // you USUALLY want this
-        // likely you should limit this to specific origins
-        for (String url : corsOrigins) {
-            config.addAllowedOrigin(url);
-        }
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("GET");
-        config.addAllowedMethod("POST");
-        config.addAllowedMethod("PUT");
-        source.registerCorsConfiguration("/api/logout", config);
-        return new CorsFilter(source);
-    }
-
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 //        http.authorizeHttpRequests((authz) -> authz.anyRequest().authenticated()).httpBasic(withDefaults());
@@ -112,6 +91,15 @@ public class WebSecurityConfig {
                 .and().successHandler(oAuth2AuthenticationSuccessHandler)
 
                 .and().logout().logoutUrl("/api/logout")
+                // Needed specifically for the /api/logout endpoint...
+                .addLogoutHandler((request, response, authentication) -> {
+                    String reqOrigin = request.getHeader("Origin");
+                    if (corsOrigins.contains(reqOrigin)) {
+                        response.setHeader("Access-Control-Allow-Origin", reqOrigin);
+                        response.setHeader("Access-Control-Allow-Credentials", String.valueOf(true));
+                        response.setHeader("Vary", "Origin");
+                    }
+                })
                 .logoutSuccessHandler((new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK)));
 //                .redirectionEndpoint()
 //                .baseUri("/oauth2/callback");
