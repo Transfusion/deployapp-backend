@@ -1,7 +1,9 @@
 package io.github.transfusion.deployapp.db.entities;
 
-import javax.persistence.*;
-import java.util.UUID;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.PrimaryKeyJoinColumn;
+import javax.persistence.Table;
 
 @Entity
 @Table(name = "s3_credentials")
@@ -9,6 +11,9 @@ import java.util.UUID;
 public class S3Credential extends StorageCredential {
     public static final String IDENTIFIER = "S3";
     public static String PUBLIC_PREFIX = "public/";
+    public static String PRIVATE_PREFIX = "private/";
+
+    public static String CUSTOM_AWS_REGION = "custom";
 //    @Id
 //    @Column(name = "id", nullable = false)
 //    private UUID id;

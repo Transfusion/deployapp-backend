@@ -2,6 +2,7 @@ package io.github.transfusion.deployapp.auth;
 
 import io.github.transfusion.deployapp.db.entities.User;
 import io.github.transfusion.deployapp.db.repositories.UserRepository;
+import io.github.transfusion.deployapp.exceptions.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

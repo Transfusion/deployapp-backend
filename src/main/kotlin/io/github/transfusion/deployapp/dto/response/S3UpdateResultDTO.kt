@@ -1,10 +1,12 @@
 package io.github.transfusion.deployapp.dto.response
 
+//typealias S3UpdateResultDTO = S3CreateResultDTO;
+//kotlin typealiases can't be used in java
 import io.github.transfusion.deployapp.dto.internal.S3TestResult
 import java.util.*
 
 
-data class S3CreateResultDTO(
+data class S3UpdateResultDTO(
     var success: Boolean,
     var id: UUID?,
     var testHeadBucketSuccess: Boolean = false,

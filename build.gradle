@@ -35,7 +35,14 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.9'
     implementation 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
+
+    implementation 'org.jobrunr:jobrunr-spring-boot-starter:5.3.0'
+    implementation 'org.apache.commons:commons-pool2:2.11.1'
+
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.amqp:spring-rabbit-test'
     testImplementation 'org.mockito:mockito-core:4.6.1'
 }
 

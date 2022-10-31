@@ -1,6 +1,7 @@
 package io.github.transfusion.deployapp.dto.response
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import java.io.Serializable
 import java.time.Instant
 import java.util.*
 
@@ -22,4 +23,4 @@ data class FtpCredentialDTO(
     override val lastUsed: Instant?,
     override val type: String,
 
-    ) : StorageCredentialDTO
+    ) : StorageCredentialDTO, Serializable

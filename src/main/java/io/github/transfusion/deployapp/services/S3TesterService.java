@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.transfusion.deployapp.db.entities.S3Credential;
 import io.github.transfusion.deployapp.dto.internal.S3TestResult;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +32,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
+import static io.github.transfusion.deployapp.db.entities.S3Credential.CUSTOM_AWS_REGION;
 import static io.github.transfusion.deployapp.db.entities.S3Credential.PUBLIC_PREFIX;
 
 @Service
@@ -54,7 +54,7 @@ public class S3TesterService {
      * Grants public read access to the /public prefix by setting a bucket policy
      * https://aws.amazon.com/premiumsupport/knowledge-center/read-access-objects-s3-bucket/
      *
-     * @return PutBucketPolicyResponse
+     * @return the {@link PutBucketPolicyResponse}
      */
     public CompletableFuture<PutBucketPolicyResponse> initializePublicPolicy(S3Client s3Client, S3Credential s3Creds) throws IOException {
 
@@ -119,9 +119,9 @@ public class S3TesterService {
      * Internal method that tests whether we have a publicly accesible prefix in the bucket
      * Prerequisite: initializePublicPolicy has already been called.
      *
-     * @param s3Creds credentials
+     * @param s3Creds {@link S3Credential}
      * @param client  S3 client already built using the builder
-     * @return
+     * @return the resulting {@link ResponseEntity} of getting the random string
      */
     private CompletableFuture<ResponseEntity<String>> testPublicAccess(S3Client client, S3Credential s3Creds) {
 
@@ -233,9 +233,9 @@ public class S3TesterService {
     }
 
     /**
-     * @param s3Creds
+     * @param s3Creds                    {@link S3Credential}
      * @param skipInitializePublicAccess set to true if you're using a partially S3-compliant storage and want to grant access to the public/ prefix yourself
-     * @return
+     * @return {@link CompletableFuture<S3TestResult>}
      */
     @Async
     public CompletableFuture<S3TestResult> test(S3Credential s3Creds, boolean skipInitializePublicAccess) {
@@ -249,11 +249,13 @@ public class S3TesterService {
 
         S3Presigner.Builder preSignerBuilder = S3Presigner.builder();
         S3ClientBuilder clientBuilder = S3Client.builder();
-        if (StringUtils.isEmpty(s3Creds.getAwsRegion())) {
+        if (s3Creds.getAwsRegion().equals(CUSTOM_AWS_REGION)) {
             String endpoint = s3Creds.getServer().replace("https://", "");
             URI uri = URI.create(String.format("https://%s", endpoint));
             preSignerBuilder.endpointOverride(uri);
             clientBuilder.endpointOverride(uri);
+            preSignerBuilder.region(Region.US_EAST_1);
+            clientBuilder.region(Region.US_EAST_1); // the default region
         } else {
             preSignerBuilder.region(Region.of(s3Creds.getAwsRegion()));
             clientBuilder.region(Region.of(s3Creds.getAwsRegion()));

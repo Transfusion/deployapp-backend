@@ -40,6 +40,9 @@ public abstract class StorageCredential {
     @Column(name = "last_used")
     private Instant lastUsed;
 
+    @Column(name = "status")
+    private String status;
+
     public UUID getId() {
         return id;
     }
@@ -94,5 +97,13 @@ public abstract class StorageCredential {
 
     public void setOrganization(Organization organization) {
         this.organization = organization;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

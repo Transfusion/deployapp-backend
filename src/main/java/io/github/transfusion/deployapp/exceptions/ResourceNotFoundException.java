@@ -1,4 +1,4 @@
-package io.github.transfusion.deployapp.auth;
+package io.github.transfusion.deployapp.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
