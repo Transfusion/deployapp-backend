@@ -261,6 +261,7 @@ public class S3TesterService {
             clientBuilder.region(Region.of(s3Creds.getAwsRegion()));
         }
         clientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCreds));
+        preSignerBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCreds));
 
         S3Client client = clientBuilder.build();
         S3Presigner preSigner = preSignerBuilder.build();
