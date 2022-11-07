@@ -15,9 +15,9 @@ data class S3CredentialDTO(
     override val id: UUID,
     override val name: String?,
     @get:JsonFormat(shape = JsonFormat.Shape.STRING)
-    override val createdOn: Instant?,
+    override val createdOn: Instant,
     @get:JsonFormat(shape = JsonFormat.Shape.STRING)
-    override val checkedOn: Instant?,
+    override val checkedOn: Instant,
     @get:JsonFormat(shape = JsonFormat.Shape.STRING)
     override val lastUsed: Instant?,
     override val type: String,

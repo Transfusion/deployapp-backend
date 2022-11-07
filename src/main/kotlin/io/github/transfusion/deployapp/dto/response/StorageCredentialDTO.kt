@@ -11,10 +11,10 @@ interface StorageCredentialDTO {
     val name: String?;
 
 //    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    val createdOn: Instant?;
+    val createdOn: Instant;
 
 //    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    val checkedOn: Instant?;
+    val checkedOn: Instant;
 
 //    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     val lastUsed: Instant?;
