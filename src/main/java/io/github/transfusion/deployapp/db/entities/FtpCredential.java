@@ -1,13 +1,15 @@
 package io.github.transfusion.deployapp.db.entities;
 
 import javax.persistence.*;
-import java.util.UUID;
 
 @Entity
 @PrimaryKeyJoinColumn(name = "id")
 @Table(name = "ftp_credentials")
 public class FtpCredential extends StorageCredential {
     public static final String IDENTIFIER = "FTP";
+
+    public static String PUBLIC_PREFIX = "public/";
+//    public static String PRIVATE_PREFIX = "private/";
 //    @Id
 //    @Column(name = "id", nullable = false)
 //    private UUID id;

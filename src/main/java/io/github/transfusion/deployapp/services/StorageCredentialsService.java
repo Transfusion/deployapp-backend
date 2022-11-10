@@ -1,6 +1,9 @@
 package io.github.transfusion.deployapp.services;
 
 import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
+import io.github.transfusion.deployapp.dto.internal.FtpTestResult;
+import io.github.transfusion.deployapp.dto.request.CreateFtpCredentialRequest;
+import io.github.transfusion.deployapp.dto.response.*;
 import io.github.transfusion.deployapp.exceptions.ResourceNotFoundException;
 import io.github.transfusion.deployapp.db.entities.FtpCredential;
 import io.github.transfusion.deployapp.db.entities.S3Credential;
@@ -11,10 +14,6 @@ import io.github.transfusion.deployapp.db.repositories.UserRepository;
 import io.github.transfusion.deployapp.dto.internal.S3TestResult;
 import io.github.transfusion.deployapp.dto.request.CreateS3CredentialRequest;
 import io.github.transfusion.deployapp.dto.request.UpdateS3CredentialRequest;
-import io.github.transfusion.deployapp.dto.response.S3CreateResultDTO;
-import io.github.transfusion.deployapp.dto.response.S3CredentialDTO;
-import io.github.transfusion.deployapp.dto.response.S3UpdateResultDTO;
-import io.github.transfusion.deployapp.dto.response.StorageCredentialDTO;
 import io.github.transfusion.deployapp.mappers.StorageCredentialMapper;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -182,6 +181,51 @@ public class StorageCredentialsService {
                 return new S3UpdateResultDTO(overallSuccess, savedId, s3TestResult, (S3CredentialDTO) findById(savedId).get());
             } else {
                 return new S3UpdateResultDTO(overallSuccess, null, s3TestResult, null);
+            }
+        }
+        return null;
+    }
+
+    @Autowired
+    private FtpTesterService ftpTesterService;
+
+    public FtpCreateResultDTO createFtpCredential(CreateFtpCredentialRequest request) {
+        SecurityContext context = SecurityContextHolder.getContext();
+        Authentication authentication = context.getAuthentication();
+        if (authentication instanceof AnonymousAuthenticationToken) {
+            // add it into the session
+            Set<UUID> anonymousCredentials = getAnonymousCredentials();
+//            anonymousCredentials.add(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
+//            anonymousCredentials.add(UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"));
+
+            session.setAttribute(ANONYMOUS_CREDENTIALS_SESSION_ATTRIBUTE, anonymousCredentials);
+        } else {
+            UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
+            User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+            FtpCredential ftp = new FtpCredential();
+
+            ftp.setUser(user);
+            StorageCredentialMapper.instance.updateFtpCredentialFromCreateRequest(request, ftp);
+            /*ftp.setUsername(request.getUsername());
+            ftp.setPassword(request.getPassword());
+            ftp.setServer(request.getServer());
+            ftp.setBaseUrl(request.getBaseUrl());
+            ftp.setDirectory(request.getDirectory());*/
+
+            Instant now = Instant.now();
+            ftp.setCreatedOn(now);
+            ftp.setCheckedOn(now);
+
+            FtpTestResult ftpTestResult = ftpTesterService.test(ftp).join();
+            boolean overallSuccess = ftpTestResult.getTestConnectionSuccess() && ftpTestResult.getTestWriteFolderSuccess()
+                    && ftpTestResult.getTestPublicAccessSuccess();
+
+            if (overallSuccess) {
+                UUID savedId = storageCredentialRepository.save(ftp).getId();
+                return new FtpCreateResultDTO(overallSuccess, savedId, ftpTestResult, (FtpCredentialDTO) findById(savedId).get());
+            } else {
+                return new FtpCreateResultDTO(overallSuccess, null, ftpTestResult, null);
             }
         }
         return null;
