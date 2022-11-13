@@ -3,11 +3,9 @@ package io.github.transfusion.deployapp.controller;
 import io.github.transfusion.deployapp.dto.internal.DeleteStorageCredentialEvent;
 import io.github.transfusion.deployapp.dto.request.CreateFtpCredentialRequest;
 import io.github.transfusion.deployapp.dto.request.CreateS3CredentialRequest;
+import io.github.transfusion.deployapp.dto.request.UpdateFtpCredentialRequest;
 import io.github.transfusion.deployapp.dto.request.UpdateS3CredentialRequest;
-import io.github.transfusion.deployapp.dto.response.FtpCreateResultDTO;
-import io.github.transfusion.deployapp.dto.response.S3CreateResultDTO;
-import io.github.transfusion.deployapp.dto.response.S3UpdateResultDTO;
-import io.github.transfusion.deployapp.dto.response.StorageCredentialDTO;
+import io.github.transfusion.deployapp.dto.response.*;
 import io.github.transfusion.deployapp.messaging.IntegrationEventsSender;
 import io.github.transfusion.deployapp.services.StorageCredentialsService;
 import org.slf4j.Logger;
@@ -87,5 +85,13 @@ public class StorageCredentialsController {
         FtpCreateResultDTO result = storageCredentialsService.createFtpCredential(request);
         if (result.getSuccess()) integrationEventsSender.send(storageCredentialsService.findById(result.getId()).get());
         return new ResponseEntity<>(result, result.getSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST);
+    }
+
+    @PutMapping("FTP/{id}")
+    public ResponseEntity<FtpUpdateResultDTO> updateFtpCredential(@PathVariable("id") UUID id,
+                                                                  @RequestBody UpdateFtpCredentialRequest request) {
+        FtpUpdateResultDTO result = storageCredentialsService.updateFtpCredential(id, request);
+        if (result.getSuccess()) integrationEventsSender.send(storageCredentialsService.findById(result.getId()).get());
+        return new ResponseEntity<>(result, result.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
     }
 }

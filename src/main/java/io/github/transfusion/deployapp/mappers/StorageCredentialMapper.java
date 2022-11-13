@@ -5,6 +5,7 @@ import io.github.transfusion.deployapp.db.entities.S3Credential;
 import io.github.transfusion.deployapp.db.entities.StorageCredential;
 import io.github.transfusion.deployapp.dto.request.CreateFtpCredentialRequest;
 import io.github.transfusion.deployapp.dto.request.CreateS3CredentialRequest;
+import io.github.transfusion.deployapp.dto.request.UpdateFtpCredentialRequest;
 import io.github.transfusion.deployapp.dto.request.UpdateS3CredentialRequest;
 import io.github.transfusion.deployapp.dto.response.FtpCredentialDTO;
 import io.github.transfusion.deployapp.dto.response.S3CredentialDTO;
@@ -41,4 +42,5 @@ public interface StorageCredentialMapper {
     FtpCredentialDTO mapFtpCredentialToDTO(FtpCredential s);
 
     void updateFtpCredentialFromCreateRequest(CreateFtpCredentialRequest request, @MappingTarget FtpCredential s);
+    void updateFtpCredentialFromUpdateRequest(UpdateFtpCredentialRequest request, @MappingTarget FtpCredential s);
 }

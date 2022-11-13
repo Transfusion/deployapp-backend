@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import javax.naming.AuthenticationException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -22,10 +23,11 @@ import static io.github.transfusion.deployapp.db.entities.FtpCredential.PUBLIC_P
 @Service
 public class FtpTesterService {
 
-    private FTPClient getFTPClient(FtpCredential ftpCreds) throws IOException {
+    private FTPClient getFTPClient(FtpCredential ftpCreds) throws IOException, AuthenticationException {
         FTPClient client = new FTPClient();
         client.connect(ftpCreds.getServer(), ftpCreds.getPort());
-        client.login(ftpCreds.getUsername(), ftpCreds.getPassword());
+        if (!client.login(ftpCreds.getUsername(), ftpCreds.getPassword()))
+            throw new AuthenticationException(String.format("Login failed to server %s port %d", ftpCreds.getServer(), ftpCreds.getPort()));
         return client;
     }
 
@@ -41,7 +43,7 @@ public class FtpTesterService {
         try {
             client = getFTPClient(ftpCreds);
             result.setTestConnectionSuccess(true);
-        } catch (IOException e) {
+        } catch (Exception e) {
             // all failed.
             result.setTestConnectionError(e.getLocalizedMessage());
             return CompletableFuture.completedFuture(result);

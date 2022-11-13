@@ -3,6 +3,7 @@ package io.github.transfusion.deployapp.services;
 import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
 import io.github.transfusion.deployapp.dto.internal.FtpTestResult;
 import io.github.transfusion.deployapp.dto.request.CreateFtpCredentialRequest;
+import io.github.transfusion.deployapp.dto.request.UpdateFtpCredentialRequest;
 import io.github.transfusion.deployapp.dto.response.*;
 import io.github.transfusion.deployapp.exceptions.ResourceNotFoundException;
 import io.github.transfusion.deployapp.db.entities.FtpCredential;
@@ -230,6 +231,47 @@ public class StorageCredentialsService {
         }
         return null;
     }
+
+
+    public FtpUpdateResultDTO updateFtpCredential(UUID id, UpdateFtpCredentialRequest request) {
+        SecurityContext context = SecurityContextHolder.getContext();
+        Authentication authentication = context.getAuthentication();
+        if (authentication instanceof AnonymousAuthenticationToken) {
+            // TODO
+        } else {
+            UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
+//            User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+            Optional<StorageCredential> _ftp = storageCredentialRepository.findById(id);
+            if (_ftp.isEmpty() || !(_ftp.get() instanceof FtpCredential))
+                throw new IllegalArgumentException(String.format("S3 credential with ID %s not found", id));
+
+            // TODO: handle organizations!
+            if (!_ftp.get().getUser().getId().equals(userId))
+                throw new AccessDeniedException("You are not allowed to access this credential.");
+
+            FtpCredential ftp = (FtpCredential) _ftp.get();
+//            s3.setUser(user);
+            StorageCredentialMapper.instance.updateFtpCredentialFromUpdateRequest(request, ftp);
+
+            Instant now = Instant.now();
+            ftp.setCreatedOn(now);
+            ftp.setCheckedOn(now);
+
+            FtpTestResult ftpTestResult = ftpTesterService.test(ftp).join();
+            boolean overallSuccess = ftpTestResult.getTestConnectionSuccess() && ftpTestResult.getTestWriteFolderSuccess()
+                    && ftpTestResult.getTestPublicAccessSuccess();
+
+            if (overallSuccess) {
+                UUID savedId = storageCredentialRepository.save(ftp).getId();
+                return new FtpUpdateResultDTO(overallSuccess, savedId, ftpTestResult, (FtpCredentialDTO) findById(savedId).get());
+            } else {
+                return new FtpUpdateResultDTO(overallSuccess, null, ftpTestResult, null);
+            }
+        }
+        return null;
+    }
+
 
     public void deleteStorageCredential(UUID id) {
         SecurityContext context = SecurityContextHolder.getContext();

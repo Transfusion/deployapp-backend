@@ -7,7 +7,7 @@ import java.util.*
 
 data class FtpCredentialDTO(
     val server: String,
-    val port: Number,
+    val port: Int,
     val username: String,
     val password: String,
     val directory: String,
