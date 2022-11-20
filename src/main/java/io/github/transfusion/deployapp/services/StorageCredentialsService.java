@@ -282,15 +282,15 @@ public class StorageCredentialsService {
             UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
 //            User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-            Optional<StorageCredential> _s3 = storageCredentialRepository.findById(id);
-            if (_s3.isEmpty() || !(_s3.get() instanceof S3Credential))
-                throw new IllegalArgumentException(String.format("S3 credential with ID %s not found", id));
+            Optional<StorageCredential> _cred = storageCredentialRepository.findById(id);
+            if (_cred.isEmpty())
+                throw new IllegalArgumentException(String.format("Storage credential with ID %s not found", id));
 
             // TODO: handle organizations!
-            if (!_s3.get().getUser().getId().equals(userId))
+            if (!_cred.get().getUser().getId().equals(userId))
                 throw new AccessDeniedException("You are not allowed to access this credential.");
 
-            storageCredentialRepository.delete(_s3.get());
+            storageCredentialRepository.delete(_cred.get());
         }
     }
 

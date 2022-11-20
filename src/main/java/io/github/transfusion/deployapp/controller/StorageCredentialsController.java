@@ -73,7 +73,7 @@ public class StorageCredentialsController {
     }
 
     @DeleteMapping("S3/{id}")
-    public ResponseEntity<Void> deleteStorageCredential(@PathVariable("id") UUID id) {
+    public ResponseEntity<Void> deleteS3Credential(@PathVariable("id") UUID id) {
         storageCredentialsService.deleteStorageCredential(id);
         integrationEventsSender.send(new DeleteStorageCredentialEvent(id));
         return new ResponseEntity<>(HttpStatus.OK);
@@ -93,5 +93,12 @@ public class StorageCredentialsController {
         FtpUpdateResultDTO result = storageCredentialsService.updateFtpCredential(id, request);
         if (result.getSuccess()) integrationEventsSender.send(storageCredentialsService.findById(result.getId()).get());
         return new ResponseEntity<>(result, result.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
+    }
+
+    @DeleteMapping("FTP/{id}")
+    public ResponseEntity<Void> deleteFtpCredential(@PathVariable("id") UUID id) {
+        storageCredentialsService.deleteStorageCredential(id);
+        integrationEventsSender.send(new DeleteStorageCredentialEvent(id));
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }
