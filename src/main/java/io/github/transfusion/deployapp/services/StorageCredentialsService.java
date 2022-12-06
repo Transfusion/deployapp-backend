@@ -1,38 +1,36 @@
 package io.github.transfusion.deployapp.services;
 
+import io.github.transfusion.deployapp.Constants;
 import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
-import io.github.transfusion.deployapp.dto.internal.FtpTestResult;
-import io.github.transfusion.deployapp.dto.request.CreateFtpCredentialRequest;
-import io.github.transfusion.deployapp.dto.request.UpdateFtpCredentialRequest;
-import io.github.transfusion.deployapp.dto.response.*;
-import io.github.transfusion.deployapp.exceptions.ResourceNotFoundException;
 import io.github.transfusion.deployapp.db.entities.FtpCredential;
 import io.github.transfusion.deployapp.db.entities.S3Credential;
 import io.github.transfusion.deployapp.db.entities.StorageCredential;
 import io.github.transfusion.deployapp.db.entities.User;
 import io.github.transfusion.deployapp.db.repositories.StorageCredentialRepository;
 import io.github.transfusion.deployapp.db.repositories.UserRepository;
+import io.github.transfusion.deployapp.dto.internal.FtpTestResult;
 import io.github.transfusion.deployapp.dto.internal.S3TestResult;
+import io.github.transfusion.deployapp.dto.request.CreateFtpCredentialRequest;
 import io.github.transfusion.deployapp.dto.request.CreateS3CredentialRequest;
+import io.github.transfusion.deployapp.dto.request.UpdateFtpCredentialRequest;
 import io.github.transfusion.deployapp.dto.request.UpdateS3CredentialRequest;
+import io.github.transfusion.deployapp.dto.response.*;
+import io.github.transfusion.deployapp.exceptions.ResourceNotFoundException;
 import io.github.transfusion.deployapp.mappers.StorageCredentialMapper;
-import org.jetbrains.annotations.NotNull;
+import io.github.transfusion.deployapp.session.SessionData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.http.HttpSession;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Looks up the storage credentials associated with a user
@@ -49,8 +47,6 @@ public class StorageCredentialsService {
 
     Logger logger = LoggerFactory.getLogger(StorageCredentialsService.class);
 
-    public static String ANONYMOUS_CREDENTIALS_SESSION_ATTRIBUTE = "anonymousCredentials";
-
     @Autowired
     private UserRepository userRepository;
 
@@ -58,35 +54,22 @@ public class StorageCredentialsService {
     private StorageCredentialRepository storageCredentialRepository;
 
     @Autowired
-    private HttpSession session;
+    private StorageCredentialFetchService storageCredentialFetchService;
 
-    public Page<StorageCredentialDTO> findPaginated(String name, List<String> identifiers, Pageable pageable) {
-        // TODO: perhaps refactor this entire method using QueryDSL...
-        if (identifiers == null) identifiers = new ArrayList<>();
-        List<Class<? extends StorageCredential>> classes = identifiers.stream().map(id -> IDENTIFIER_TO_CLASS_NAME.get(id)).collect(Collectors.toList());
-
+    public Page<StorageCredential> findPaginated(String name, List<String> identifiers, Pageable pageable) {
         SecurityContext context = SecurityContextHolder.getContext();
         Authentication authentication = context.getAuthentication();
 
         if (authentication instanceof AnonymousAuthenticationToken) {
-            Set<UUID> anonymousCredentials = getAnonymousCredentials();
-            if (name == null)
-                return storageCredentialRepository.findByIdIn(anonymousCredentials, classes, pageable).map(StorageCredentialMapper.instance::toDTO);
-            else
-                return storageCredentialRepository.findByIdInLikeName(anonymousCredentials, name, classes, pageable).map(StorageCredentialMapper.instance::toDTO);
+            return storageCredentialFetchService.findPaginatedAnonymous(name, identifiers, pageable);
+        } else {
+            UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
+            return storageCredentialFetchService.findPaginated(userId, name, identifiers, pageable);
         }
-
-        // TODO: Add organizations
-
-        UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
-        if (name == null)
-            return storageCredentialRepository.findAllByUserId(userId, classes, pageable).map(StorageCredentialMapper.instance::toDTO);
-        else
-            return storageCredentialRepository.findAllByUserIdLikeName(userId, name, classes, pageable).map(StorageCredentialMapper.instance::toDTO);
     }
 
     @Autowired
-    private S3TesterService s3TesterService;
+    private S3CreateService s3CreateService;
 
     /**
      * TODO test this method, should be straightforward
@@ -98,94 +81,53 @@ public class StorageCredentialsService {
 //        if (StringUtils.isEmpty(request.getServer())) {
 //            request.setServer("s3.amazonaws.com");
 //        }
-
         SecurityContext context = SecurityContextHolder.getContext();
         Authentication authentication = context.getAuthentication();
         if (authentication instanceof AnonymousAuthenticationToken) {
-            // add it into the session
-            Set<UUID> anonymousCredentials = getAnonymousCredentials();
-//            anonymousCredentials.add(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
-//            anonymousCredentials.add(UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"));
-
-            session.setAttribute(ANONYMOUS_CREDENTIALS_SESSION_ATTRIBUTE, anonymousCredentials);
+            User user = userRepository.findById(Constants.ANONYMOUS_UID).orElseThrow(() -> new ResourceNotFoundException("User", "id", Constants.ANONYMOUS_UID));
+            return s3CreateService.createS3CredentialAnonymous(user, request);
         } else {
             UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
             User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-
-            S3Credential s3 = new S3Credential();
-
-            s3.setUser(user);
-            StorageCredentialMapper.instance.updateS3CredentialFromCreateRequest(request, s3);
-            /*s3.setServer(request.getServer());
-            s3.setAwsRegion(request.getAwsRegion());
-            s3.setAccessKey(request.getAccessKey());
-            s3.setSecretKey(request.getSecretKey());
-            s3.setBucket(request.getBucket());
-            s3.setName(request.getName());*/
-
-            Instant now = Instant.now();
-            s3.setCreatedOn(now);
-            s3.setCheckedOn(now);
-
-            S3TestResult s3TestResult = s3TesterService.test(s3, request.getSkipTestPublicAccess()).join();
-            boolean overallSuccess = s3TestResult.getTestHeadBucketSuccess() &&
-                    !(!s3TestResult.getSkipTestPublicAccess() && !s3TestResult.getTestPublicAccessSuccess()) &&
-                    s3TestResult.getTestSignedLinkSuccess();
-
-            if (overallSuccess) {
-                UUID savedId = storageCredentialRepository.save(s3).getId();
-                return new S3CreateResultDTO(overallSuccess, savedId, s3TestResult, (S3CredentialDTO) findById(savedId).get());
-            } else {
-                return new S3CreateResultDTO(overallSuccess, null, s3TestResult, null);
-            }
+            return s3CreateService.createS3Credential(user, request);
         }
-
-        return null;
     }
+
+    @Autowired
+    private S3TesterService s3TesterService;
+
+    @Autowired
+    private StorageCredentialMapper storageCredentialMapper;
 
     public S3UpdateResultDTO updateS3Credential(UUID id, UpdateS3CredentialRequest request) {
-        SecurityContext context = SecurityContextHolder.getContext();
-        Authentication authentication = context.getAuthentication();
-        if (authentication instanceof AnonymousAuthenticationToken) {
-            // TODO
+        Optional<StorageCredential> _s3 = storageCredentialRepository.findById(id);
+        if (_s3.isEmpty() || !(_s3.get() instanceof S3Credential))
+            throw new IllegalArgumentException(String.format("S3 credential with ID %s not found", id));
+
+        // TODO: handle organizations!
+
+        S3Credential s3 = (S3Credential) _s3.get();
+        storageCredentialMapper.updateS3CredentialFromUpdateRequest(request, s3);
+
+        Instant now = Instant.now();
+        s3.setCreatedOn(now);
+        s3.setCheckedOn(now);
+
+        S3TestResult s3TestResult = s3TesterService.test(s3, request.getSkipTestPublicAccess()).join();
+        boolean overallSuccess = s3TestResult.getTestHeadBucketSuccess() &&
+                !(!s3TestResult.getSkipTestPublicAccess() && !s3TestResult.getTestPublicAccessSuccess()) &&
+                s3TestResult.getTestSignedLinkSuccess();
+
+        if (overallSuccess) {
+            UUID savedId = storageCredentialRepository.save(s3).getId();
+            return new S3UpdateResultDTO(overallSuccess, savedId, s3TestResult, (S3CredentialDTO) findById(savedId).get());
         } else {
-            UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
-//            User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-
-            Optional<StorageCredential> _s3 = storageCredentialRepository.findById(id);
-            if (_s3.isEmpty() || !(_s3.get() instanceof S3Credential))
-                throw new IllegalArgumentException(String.format("S3 credential with ID %s not found", id));
-
-            // TODO: handle organizations!
-            if (!_s3.get().getUser().getId().equals(userId))
-                throw new AccessDeniedException("You are not allowed to access this credential.");
-
-            S3Credential s3 = (S3Credential) _s3.get();
-//            s3.setUser(user);
-            StorageCredentialMapper.instance.updateS3CredentialFromUpdateRequest(request, s3);
-
-            Instant now = Instant.now();
-            s3.setCreatedOn(now);
-            s3.setCheckedOn(now);
-
-            S3TestResult s3TestResult = s3TesterService.test(s3, request.getSkipTestPublicAccess()).join();
-            boolean overallSuccess = s3TestResult.getTestHeadBucketSuccess() &&
-                    !(!s3TestResult.getSkipTestPublicAccess() && !s3TestResult.getTestPublicAccessSuccess()) &&
-                    s3TestResult.getTestSignedLinkSuccess();
-
-//            UUID savedId = null;
-//            if (overallSuccess) savedId = storageCredentialRepository.save(s3).getId();
-//            return new S3UpdateResultDTO(overallSuccess, savedId, s3TestResult);
-
-            if (overallSuccess) {
-                UUID savedId = storageCredentialRepository.save(s3).getId();
-                return new S3UpdateResultDTO(overallSuccess, savedId, s3TestResult, (S3CredentialDTO) findById(savedId).get());
-            } else {
-                return new S3UpdateResultDTO(overallSuccess, null, s3TestResult, null);
-            }
+            return new S3UpdateResultDTO(overallSuccess, null, s3TestResult, null);
         }
-        return null;
     }
+
+    @Autowired
+    private FtpCreateService ftpCreateService;
 
     @Autowired
     private FtpTesterService ftpTesterService;
@@ -194,120 +136,58 @@ public class StorageCredentialsService {
         SecurityContext context = SecurityContextHolder.getContext();
         Authentication authentication = context.getAuthentication();
         if (authentication instanceof AnonymousAuthenticationToken) {
-            // add it into the session
-            Set<UUID> anonymousCredentials = getAnonymousCredentials();
-//            anonymousCredentials.add(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
-//            anonymousCredentials.add(UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"));
-
-            session.setAttribute(ANONYMOUS_CREDENTIALS_SESSION_ATTRIBUTE, anonymousCredentials);
+            User user = userRepository.findById(Constants.ANONYMOUS_UID).orElseThrow(() -> new ResourceNotFoundException("User", "id", Constants.ANONYMOUS_UID));
+            return ftpCreateService.createFtpCredentialAnonymous(user, request);
         } else {
             UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
             User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-
-            FtpCredential ftp = new FtpCredential();
-
-            ftp.setUser(user);
-            StorageCredentialMapper.instance.updateFtpCredentialFromCreateRequest(request, ftp);
-            /*ftp.setUsername(request.getUsername());
-            ftp.setPassword(request.getPassword());
-            ftp.setServer(request.getServer());
-            ftp.setBaseUrl(request.getBaseUrl());
-            ftp.setDirectory(request.getDirectory());*/
-
-            Instant now = Instant.now();
-            ftp.setCreatedOn(now);
-            ftp.setCheckedOn(now);
-
-            FtpTestResult ftpTestResult = ftpTesterService.test(ftp).join();
-            boolean overallSuccess = ftpTestResult.getTestConnectionSuccess() && ftpTestResult.getTestWriteFolderSuccess()
-                    && ftpTestResult.getTestPublicAccessSuccess();
-
-            if (overallSuccess) {
-                UUID savedId = storageCredentialRepository.save(ftp).getId();
-                return new FtpCreateResultDTO(overallSuccess, savedId, ftpTestResult, (FtpCredentialDTO) findById(savedId).get());
-            } else {
-                return new FtpCreateResultDTO(overallSuccess, null, ftpTestResult, null);
-            }
+            return ftpCreateService.createFtpCredential(user, request);
         }
-        return null;
     }
 
 
     public FtpUpdateResultDTO updateFtpCredential(UUID id, UpdateFtpCredentialRequest request) {
-        SecurityContext context = SecurityContextHolder.getContext();
-        Authentication authentication = context.getAuthentication();
-        if (authentication instanceof AnonymousAuthenticationToken) {
-            // TODO
-        } else {
-            UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
-//            User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        Optional<StorageCredential> _ftp = storageCredentialRepository.findById(id);
+        if (_ftp.isEmpty() || !(_ftp.get() instanceof FtpCredential))
+            throw new IllegalArgumentException(String.format("S3 credential with ID %s not found", id));
 
-            Optional<StorageCredential> _ftp = storageCredentialRepository.findById(id);
-            if (_ftp.isEmpty() || !(_ftp.get() instanceof FtpCredential))
-                throw new IllegalArgumentException(String.format("S3 credential with ID %s not found", id));
+        // TODO: handle organizations!
 
-            // TODO: handle organizations!
-            if (!_ftp.get().getUser().getId().equals(userId))
-                throw new AccessDeniedException("You are not allowed to access this credential.");
-
-            FtpCredential ftp = (FtpCredential) _ftp.get();
+        FtpCredential ftp = (FtpCredential) _ftp.get();
 //            s3.setUser(user);
-            StorageCredentialMapper.instance.updateFtpCredentialFromUpdateRequest(request, ftp);
+        storageCredentialMapper.updateFtpCredentialFromUpdateRequest(request, ftp);
 
-            Instant now = Instant.now();
-            ftp.setCreatedOn(now);
-            ftp.setCheckedOn(now);
+        Instant now = Instant.now();
+        ftp.setCreatedOn(now);
+        ftp.setCheckedOn(now);
 
-            FtpTestResult ftpTestResult = ftpTesterService.test(ftp).join();
-            boolean overallSuccess = ftpTestResult.getTestConnectionSuccess() && ftpTestResult.getTestWriteFolderSuccess()
-                    && ftpTestResult.getTestPublicAccessSuccess();
+        FtpTestResult ftpTestResult = ftpTesterService.test(ftp).join();
+        boolean overallSuccess = ftpTestResult.getTestConnectionSuccess() && ftpTestResult.getTestWriteFolderSuccess()
+                && ftpTestResult.getTestPublicAccessSuccess();
 
-            if (overallSuccess) {
-                UUID savedId = storageCredentialRepository.save(ftp).getId();
-                return new FtpUpdateResultDTO(overallSuccess, savedId, ftpTestResult, (FtpCredentialDTO) findById(savedId).get());
-            } else {
-                return new FtpUpdateResultDTO(overallSuccess, null, ftpTestResult, null);
-            }
+        if (overallSuccess) {
+            UUID savedId = storageCredentialRepository.save(ftp).getId();
+            return new FtpUpdateResultDTO(overallSuccess, savedId, ftpTestResult, (FtpCredentialDTO) findById(savedId).get());
+        } else {
+            return new FtpUpdateResultDTO(overallSuccess, null, ftpTestResult, null);
         }
-        return null;
     }
 
+    @Autowired
+    private SessionData sessionData;
 
     public void deleteStorageCredential(UUID id) {
+        Optional<StorageCredential> _cred = storageCredentialRepository.findById(id);
+        if (_cred.isEmpty())
+            throw new IllegalArgumentException(String.format("Storage credential with ID %s not found", id));
+        storageCredentialRepository.delete(_cred.get());
         SecurityContext context = SecurityContextHolder.getContext();
         Authentication authentication = context.getAuthentication();
-        if (authentication instanceof AnonymousAuthenticationToken) {
-            // TODO, check if in session
-        } else {
-            UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
-//            User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-
-            Optional<StorageCredential> _cred = storageCredentialRepository.findById(id);
-            if (_cred.isEmpty())
-                throw new IllegalArgumentException(String.format("Storage credential with ID %s not found", id));
-
-            // TODO: handle organizations!
-            if (!_cred.get().getUser().getId().equals(userId))
-                throw new AccessDeniedException("You are not allowed to access this credential.");
-
-            storageCredentialRepository.delete(_cred.get());
-        }
-    }
-
-
-    @NotNull
-    private Set<UUID> getAnonymousCredentials() {
-        Set<UUID> anonymousCredentials = (Set<UUID>) session
-                .getAttribute(ANONYMOUS_CREDENTIALS_SESSION_ATTRIBUTE);
-        if (anonymousCredentials == null) {
-            anonymousCredentials = new HashSet<>();
-        }
-
-        return anonymousCredentials;
+        if (authentication instanceof AnonymousAuthenticationToken) sessionData.getAnonymousCredentials().remove(id);
     }
 
 
     public Optional<StorageCredentialDTO> findById(UUID id) {
-        return storageCredentialRepository.findById(id).map(StorageCredentialMapper.instance::toDTO);
+        return storageCredentialRepository.findById(id).map(storageCredentialMapper::toDTO);
     }
 }

@@ -13,7 +13,7 @@ import io.github.transfusion.deployapp.dto.response.StorageCredentialDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.factory.Mappers;
+//import org.mapstruct.factory.Mappers;
 
 
 @Mapper(
@@ -30,7 +30,7 @@ public interface StorageCredentialMapper {
         }
     }
 
-    StorageCredentialMapper instance = Mappers.getMapper(StorageCredentialMapper.class);
+//    StorageCredentialMapper instance = Mappers.getMapper(StorageCredentialMapper.class);
 
     @Mapping(target = "type", constant = S3Credential.IDENTIFIER)
     S3CredentialDTO mapS3CredentialToDTO(S3Credential s);

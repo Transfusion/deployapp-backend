@@ -6,6 +6,7 @@ import io.github.transfusion.deployapp.dto.request.CreateS3CredentialRequest;
 import io.github.transfusion.deployapp.dto.request.UpdateFtpCredentialRequest;
 import io.github.transfusion.deployapp.dto.request.UpdateS3CredentialRequest;
 import io.github.transfusion.deployapp.dto.response.*;
+import io.github.transfusion.deployapp.mappers.StorageCredentialMapper;
 import io.github.transfusion.deployapp.messaging.IntegrationEventsSender;
 import io.github.transfusion.deployapp.services.StorageCredentialsService;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
@@ -34,6 +36,9 @@ public class StorageCredentialsController {
     @Autowired
     private HttpSession session;
 
+    @Autowired
+    private StorageCredentialMapper storageCredentialMapper;
+
     @GetMapping()
     public ResponseEntity<Page<StorageCredentialDTO>> list(
             // fuzzy match
@@ -41,7 +46,7 @@ public class StorageCredentialsController {
             @RequestParam(required = false) List<String> types,
             Pageable page
     ) {
-        Page<StorageCredentialDTO> resultPage = storageCredentialsService.findPaginated(name, types, page);
+        Page<StorageCredentialDTO> resultPage = storageCredentialsService.findPaginated(name, types, page).map(storageCredentialMapper::toDTO);
 //        if (p.getPageNumber() > resultPage.getTotalPages()) {
 //            throw new IllegalArgumentException(String.format("Trying to access page %d out of %d", page, resultPage.getTotalPages()));
 //        }
@@ -49,14 +54,10 @@ public class StorageCredentialsController {
         return new ResponseEntity<>(resultPage, HttpStatus.OK);
     }
 
-//    @GetMapping("S3")
-//    public ResponseEntity<List<S3CredentialsDTO>> getAllS3Creds() {
-//
-//    }
-
     @Autowired
     private IntegrationEventsSender integrationEventsSender;
 
+    // no authentication checks needed...
     @PostMapping("S3")
     public ResponseEntity<S3CreateResultDTO> createS3Credential(@RequestBody CreateS3CredentialRequest request) throws IOException {
         S3CreateResultDTO result = storageCredentialsService.createS3Credential(request);
@@ -65,6 +66,7 @@ public class StorageCredentialsController {
     }
 
     @PutMapping("S3/{id}")
+    @PreAuthorize("hasPermission(#id, 'STORECRED_EDIT')")
     public ResponseEntity<S3UpdateResultDTO> updateS3Credential(@PathVariable("id") UUID id,
                                                                 @RequestBody UpdateS3CredentialRequest request) {
         S3UpdateResultDTO result = storageCredentialsService.updateS3Credential(id, request);
@@ -73,6 +75,7 @@ public class StorageCredentialsController {
     }
 
     @DeleteMapping("S3/{id}")
+    @PreAuthorize("hasPermission(#id, 'STORECRED_EDIT')")
     public ResponseEntity<Void> deleteS3Credential(@PathVariable("id") UUID id) {
         storageCredentialsService.deleteStorageCredential(id);
         integrationEventsSender.send(new DeleteStorageCredentialEvent(id));
@@ -88,6 +91,7 @@ public class StorageCredentialsController {
     }
 
     @PutMapping("FTP/{id}")
+    @PreAuthorize("hasPermission(#id, 'STORECRED_EDIT')")
     public ResponseEntity<FtpUpdateResultDTO> updateFtpCredential(@PathVariable("id") UUID id,
                                                                   @RequestBody UpdateFtpCredentialRequest request) {
         FtpUpdateResultDTO result = storageCredentialsService.updateFtpCredential(id, request);
@@ -96,6 +100,7 @@ public class StorageCredentialsController {
     }
 
     @DeleteMapping("FTP/{id}")
+    @PreAuthorize("hasPermission(#id, 'STORECRED_EDIT')")
     public ResponseEntity<Void> deleteFtpCredential(@PathVariable("id") UUID id) {
         storageCredentialsService.deleteStorageCredential(id);
         integrationEventsSender.send(new DeleteStorageCredentialEvent(id));
