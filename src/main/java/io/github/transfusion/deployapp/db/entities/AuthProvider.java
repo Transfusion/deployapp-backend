@@ -1,5 +1,7 @@
 package io.github.transfusion.deployapp.db.entities;
 
+import org.hibernate.annotations.Type;
+
 import javax.persistence.*;
 
 @Entity
@@ -16,6 +18,18 @@ public class AuthProvider {
 
     @Column(name = "provider_key", nullable = false)
      private String providerKey;
+
+    @Column(name = "provider_info_name")
+    @Type(type = "org.hibernate.type.TextType")
+    private String providerInfoName;
+
+    public String getProviderInfoName() {
+        return providerInfoName;
+    }
+
+    public void setProviderInfoName(String providerInfoName) {
+        this.providerInfoName = providerInfoName;
+    }
 
     public AuthProviderId getId() {
         return id;

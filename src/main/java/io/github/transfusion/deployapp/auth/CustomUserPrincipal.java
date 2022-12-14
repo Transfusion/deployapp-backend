@@ -19,6 +19,7 @@ public class CustomUserPrincipal implements OAuth2User, UserDetails {
     private final String name;
     private final boolean enabled;
     private final Collection<? extends GrantedAuthority> authorities;
+    private final boolean hasPassword;
     private Map<String, Object> attributes;
 
     public CustomUserPrincipal(UUID id, String username, String email, String password, String name, Boolean accountVerified, Collection<? extends GrantedAuthority> authorities) {
@@ -27,6 +28,7 @@ public class CustomUserPrincipal implements OAuth2User, UserDetails {
         this.username = username == null ? email : username;
         this.email = email;
         this.password = password;
+        this.hasPassword = password != null;
         this.name = name;
         this.enabled = accountVerified;
         this.authorities = authorities;
@@ -104,5 +106,9 @@ public class CustomUserPrincipal implements OAuth2User, UserDetails {
 
     public boolean hasUsername() {
         return hasUsername;
+    }
+
+    public boolean hasPassword() {
+        return hasPassword;
     }
 }
