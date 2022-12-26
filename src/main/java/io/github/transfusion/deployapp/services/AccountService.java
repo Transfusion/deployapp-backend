@@ -66,6 +66,10 @@ public class AccountService {
             else user.setName(request.getName());
         }
 
+        if (request.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
         return userRepository.save(user);
     }
 
@@ -180,7 +184,7 @@ public class AccountService {
             UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
             SecurityContextHolder.getContext().setAuthentication(authentication);
             return new LoginResultDTO(true, userId, false, false, null);
-        } catch (BadCredentialsException ex) {
+        } catch (BadCredentialsException | NullPointerException ex) {
             return new LoginResultDTO(false, null, true, false, null);
         } catch (DisabledException ex) {
             return new LoginResultDTO(false, null, false, true, null);
