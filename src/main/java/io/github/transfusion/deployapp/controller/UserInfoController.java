@@ -3,16 +3,15 @@ package io.github.transfusion.deployapp.controller;
 import io.github.transfusion.deployapp.auth.CustomUserDetailsService;
 import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
 import io.github.transfusion.deployapp.db.repositories.AuthProviderRepository;
-import io.github.transfusion.deployapp.dto.request.DeleteConnectedAccountRequest;
-import io.github.transfusion.deployapp.dto.request.PatchProfileRequest;
-import io.github.transfusion.deployapp.dto.response.AuthProviderDTO;
-import io.github.transfusion.deployapp.dto.response.ProfileDTO;
+import io.github.transfusion.deployapp.dto.request.*;
+import io.github.transfusion.deployapp.dto.response.*;
 import io.github.transfusion.deployapp.mappers.AuthProviderMapper;
 import io.github.transfusion.deployapp.services.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,7 +19,11 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import javax.servlet.http.HttpServletRequest;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -92,5 +95,46 @@ public class UserInfoController {
         accountService.deleteConnectedAccount(id, providerName);
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    private void baseUrlCheck(HttpServletRequest request, String baseUrl) throws URISyntaxException {
+        // if we get to this point, we have passed the CorsFilter.
+        // simply check if the origin is equal to the given base url, and whether they are present in custom_cors.origins.
+
+        String origin = request.getHeader("origin");
+        String baseUrlOrigin = ServletUriComponentsBuilder.fromUri(new URI(baseUrl)).replacePath(null).build().toString();
+        if (origin == null || !origin.equals(baseUrlOrigin))
+            throw new AccessDeniedException("redirectBaseUrl must be from the same origin.");
+    }
+
+    @PostMapping("register")
+    public ResponseEntity<RegisterResultDTO> register(HttpServletRequest request, @RequestBody RegisterRequest registerRequest) throws URISyntaxException {
+        baseUrlCheck(request, registerRequest.getRedirectBaseUrl());
+
+        RegisterResultDTO resultDTO = accountService.registerByEmail(registerRequest.getEmail(), registerRequest.getPassword(), registerRequest.getRedirectBaseUrl());
+        return new ResponseEntity<>(resultDTO, resultDTO.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
+    }
+
+    @PostMapping("resend_verification")
+    public ResponseEntity<ResendVerificationResultDTO> resendVerification(HttpServletRequest request, @RequestBody ResendVerificationRequest resendVerificationRequest) throws URISyntaxException {
+        baseUrlCheck(request, resendVerificationRequest.getRedirectBaseUrl());
+
+        ResendVerificationResultDTO resultDTO = accountService.resendVerification(resendVerificationRequest.getEmail(),
+                resendVerificationRequest.getNewEmail(), resendVerificationRequest.getRedirectBaseUrl());
+
+        return new ResponseEntity<>(resultDTO, resultDTO.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
+    }
+
+    @PostMapping("verify")
+    public ResponseEntity<Void> verify(@RequestBody VerificationRequest verificationRequest) {
+        boolean ok = accountService.verify(verificationRequest.getToken());
+        return new ResponseEntity<>(ok ? HttpStatus.OK : HttpStatus.FORBIDDEN);
+    }
+
+    @PostMapping("login")
+    public ResponseEntity<LoginResultDTO> login(HttpServletRequest request,
+                                                @RequestBody LoginRequest loginRequest) {
+        return new ResponseEntity<>
+                (accountService.login(loginRequest.getEmail(), loginRequest.getPassword()), HttpStatus.OK);
     }
 }

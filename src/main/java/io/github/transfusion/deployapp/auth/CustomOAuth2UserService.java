@@ -121,6 +121,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private User assignToExistingUserById(UUID id, OAuth2UserRequest oAuth2UserRequest, OAuth2UserInfo oAuth2UserInfo) {
         User user = userRepository.findById(id).get();
+        // in the event that the user attempted to signup with email...
+        if (!user.getAccountVerified()) {
+            user.setAccountVerified(true);
+            userRepository.save(user);
+        }
 
         AuthProvider authProvider = new AuthProvider();
         AuthProviderId authProviderId = new AuthProviderId();

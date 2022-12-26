@@ -25,6 +25,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.session:spring-session-data-redis'
+    // for email sending
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation platform('software.amazon.awssdk:bom:2.17.247')
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.9'
     implementation 'software.amazon.awssdk:s3'
