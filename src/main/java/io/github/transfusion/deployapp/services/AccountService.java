@@ -1,11 +1,11 @@
 package io.github.transfusion.deployapp.services;
 
 import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
+import io.github.transfusion.deployapp.db.entities.SignupVerificationToken;
 import io.github.transfusion.deployapp.db.entities.User;
-import io.github.transfusion.deployapp.db.entities.VerificationToken;
 import io.github.transfusion.deployapp.db.repositories.AuthProviderRepository;
+import io.github.transfusion.deployapp.db.repositories.SignupVerificationTokenRepository;
 import io.github.transfusion.deployapp.db.repositories.UserRepository;
-import io.github.transfusion.deployapp.db.repositories.VerificationTokenRepository;
 import io.github.transfusion.deployapp.dto.internal.SendVerificationEmailEvent;
 import io.github.transfusion.deployapp.dto.request.PatchProfileRequest;
 import io.github.transfusion.deployapp.dto.response.LoginResultDTO;
@@ -83,8 +83,11 @@ public class AccountService {
 
     // Delegating email sending to the NotificationService is the better separation of concerns.
 
+//    @Autowired
+//    private VerificationTokenRepository verificationTokenRepository;
+
     @Autowired
-    private VerificationTokenRepository verificationTokenRepository;
+    private SignupVerificationTokenRepository signupVerificationTokenRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -112,13 +115,13 @@ public class AccountService {
 
         // generate and save a random token
         UUID randomUUID = UUID.randomUUID();
-        VerificationToken token = new VerificationToken();
+        SignupVerificationToken token = new SignupVerificationToken();
         token.setId(randomUUID);
         token.setUserId(user.getId());
         token.setCreatedOn(Instant.now());
 //        token.setEmail(user.getEmail());
         token.setExpiry(Instant.now().plusSeconds(tokenValidityDuration));
-        verificationTokenRepository.save(token);
+        signupVerificationTokenRepository.save(token);
 
         // fire off the registration email
         eventPublisher.publishEvent(new SendVerificationEmailEvent(user.getId(), email, redirectBaseUrl, token.getId().toString()));
@@ -140,32 +143,32 @@ public class AccountService {
             userRepository.save(user);
         }
 
-        Optional<VerificationToken> _token = verificationTokenRepository.findByUserId(user.getId());
+        Optional<SignupVerificationToken> _token = signupVerificationTokenRepository.findByUserId(user.getId());
         if (_token.isEmpty()) {
             // edge case which should never be encountered: no record of having sent verif but user is already present & unverified
 
             // generate and save a random token
             UUID randomUUID = UUID.randomUUID();
-            VerificationToken token = new VerificationToken();
+            SignupVerificationToken token = new SignupVerificationToken();
             token.setId(randomUUID);
             token.setUserId(user.getId());
             token.setCreatedOn(Instant.now());
 //            token.setEmail(user.getEmail());
             token.setExpiry(Instant.now().plusSeconds(tokenValidityDuration));
-            verificationTokenRepository.save(token);
+            signupVerificationTokenRepository.save(token);
 
             // fire off the registration email
             eventPublisher.publishEvent(new SendVerificationEmailEvent(user.getId(),
                     user.getEmail(), redirectBaseUrl, token.getId().toString()));
         } else {
             // token is not empty, check whether 10 mins have passed
-            VerificationToken token = _token.get();
+            SignupVerificationToken token = _token.get();
             if (token.getCreatedOn().until(Instant.now(), ChronoUnit.MINUTES) < 10)
                 return new ResendVerificationResultDTO(false, newEmail != null);
 
             token.setCreatedOn(Instant.now());
             token.setExpiry(Instant.now().plusSeconds(tokenValidityDuration));
-            verificationTokenRepository.save(token);
+            signupVerificationTokenRepository.save(token);
 
             eventPublisher.publishEvent(new SendVerificationEmailEvent(user.getId(),
                     user.getEmail(), redirectBaseUrl, token.getId().toString()));
@@ -194,14 +197,14 @@ public class AccountService {
     }
 
     public boolean verify(UUID tokenId) {
-        Optional<VerificationToken> _token = verificationTokenRepository.findById(tokenId);
+        Optional<SignupVerificationToken> _token = signupVerificationTokenRepository.findById(tokenId);
         if (_token.isEmpty()) return false;
-        VerificationToken token = _token.get();
+        SignupVerificationToken token = _token.get();
         // if already expired
         if (token.getExpiry().isBefore(Instant.now())) return false;
         token.getUser().setAccountVerified(true);
         userRepository.save(token.getUser());
-        verificationTokenRepository.delete(token);
+        signupVerificationTokenRepository.delete(token);
         return true;
     }
 }

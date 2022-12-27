@@ -9,6 +9,13 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "verification_token")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(
+        discriminatorType = DiscriminatorType.INTEGER,
+        name = "type"
+//        https://stackoverflow.com/questions/56044518/hibernate-ddl-validation-smallint-vs-int2
+//        columnDefinition = "TINYINT(1)"
+)
 public class VerificationToken {
     @Id
     @Column(name = "id", nullable = false)
@@ -27,6 +34,17 @@ public class VerificationToken {
 
     @Column(name = "created_on", nullable = false)
     private Instant createdOn;
+
+//    @Column(name = "type", nullable = false)
+//    private Integer type;
+//
+//    public Integer getType() {
+//        return type;
+//    }
+//
+//    public void setType(Integer type) {
+//        this.type = type;
+//    }
 
 //    @Column(name = "email", nullable = false, length = 254)
 //    private String email;
