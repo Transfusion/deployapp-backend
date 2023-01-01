@@ -32,6 +32,9 @@ jobs:
           tags: deployapp-integration-test:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       -
         name: Run integration tests
         run: |
