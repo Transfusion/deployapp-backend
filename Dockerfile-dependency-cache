@@ -1,0 +1,7 @@
+FROM ghcr.io/graalvm/graalvm-ce:ol7-java11-22.3.0 as builder
+WORKDIR /app
+COPY . /app
+RUN ./gradlew clean build -x test --no-daemon
+
+FROM ghcr.io/graalvm/graalvm-ce:ol7-java11-22.3.0
+COPY --from=builder /root/.gradle /root/.gradle

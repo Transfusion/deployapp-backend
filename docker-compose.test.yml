@@ -1,0 +1,27 @@
+services:
+  redis:
+    image: redis
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+    ports:
+      - "16379:6379"
+    networks:
+      - deployapp_integration_test_net
+  integration-tests:
+    image: deployapp-integration-test
+    # build: 
+    #   context: .
+    #   # target: external-integration-test
+    #   dockerfile: Dockerfile-integration-test
+
+    # too slow
+    # volumes:
+    #   - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - deployapp_integration_test_net
+
+networks:
+  deployapp_integration_test_net:

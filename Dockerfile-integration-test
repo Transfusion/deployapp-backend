@@ -1,0 +1,19 @@
+FROM ghcr.io/graalvm/graalvm-ce:ol7-java11-22.3.0 as builder
+
+WORKDIR /app/
+
+COPY gradlew build.gradle build.gradle.kts settings.gradle ./
+COPY gradle ./gradle
+# COPY .gradle ./.gradle
+RUN ls -lah
+RUN ./gradlew dependencies
+
+FROM ghcr.io/graalvm/graalvm-ce:ol7-java11-22.3.0
+COPY --from=builder /root/.gradle /root/.gradle
+WORKDIR /app
+COPY . /app
+
+# RUN ls -lah
+# https://stackoverflow.com/questions/29427020/how-to-run-gradle-test-when-all-tests-are-up-to-date
+# "--no-build-cache", 
+CMD ["./gradlew", "--no-daemon",  ":test", "--tests", "io.github.transfusion.deployapp.external_integration.*"]

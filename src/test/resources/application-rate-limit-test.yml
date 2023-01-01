@@ -1,0 +1,14 @@
+spring:
+  redis:
+    host: redis # docker-compose networking
+    port: 6379
+#    password:
+    flush-mode: immediate
+
+custom_app:
+  rate_limit_key_prefix: "dapp_rlimit:"
+  token_validity_duration: 3600
+  #  email_retry_cooldown: 600
+  # two attempts in 5 minutes
+  email_retry_rate_limit_duration: 5
+  email_retry_rate_limit_capacity: 2
