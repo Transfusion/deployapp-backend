@@ -27,7 +27,7 @@ jobs:
         name: Build and cache
         uses: docker/build-push-action@v3
         with:
-          file: {context}/Dockerfile-integration-test
+          file: "{context}/Dockerfile-integration-test"
           push: false
           tags: deployapp-integration-test:latest
           cache-from: type=gha
