@@ -95,6 +95,15 @@ public class UserInfoController {
         }
     }
 
+    @PostMapping("confirm_change_email")
+    @PreAuthorize("hasRole('ROLE_USER')") // cannot be anonymous
+    public ResponseEntity<Void> confirmChangeEmail(@RequestBody ConfirmEmailChangeRequest request) {
+        boolean ok = accountService.confirmChangeEmail(request.getToken(), request.getEmail());
+        if (ok) customUserDetailsService.reloadUserPrincipal();
+        return new ResponseEntity<>(ok ? HttpStatus.OK : HttpStatus.FORBIDDEN);
+    }
+
+
     @Autowired
     private AuthProviderRepository authProviderRepository;
 

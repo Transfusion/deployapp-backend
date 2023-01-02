@@ -98,6 +98,18 @@ public class AccountService {
                 principal.getEmail(), email, redirectBaseUrl, randomUUID.toString()));
     }
 
+    public boolean confirmChangeEmail(UUID tokenId, String email) {
+        Optional<ChangeEmailVerificationToken> _token = changeEmailVerificationTokenRepository.findById(tokenId);
+        if (_token.isEmpty()) return false;
+        ChangeEmailVerificationToken token = _token.get();
+        // if already expired
+        if (token.getExpiry().isBefore(Instant.now())) return false;
+        token.getUser().setEmail(email);
+        userRepository.save(token.getUser());
+        changeEmailVerificationTokenRepository.delete(token);
+        return true;
+    }
+
     @Autowired
     private AuthProviderRepository authProviderRepository;
 

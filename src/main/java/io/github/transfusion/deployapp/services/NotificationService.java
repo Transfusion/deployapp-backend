@@ -74,7 +74,7 @@ public class NotificationService {
     private void initiateChangeEmail(SendChangeEmailEvent event) {
         String targetUrl = event.getRedirectBaseUrl();
         targetUrl = UriComponentsBuilder.fromUriString(targetUrl)
-                .queryParam("change_email", event.getToken())
+                .queryParam("confirm_change_email", event.getToken())
                 .queryParam("new_email", event.getNewEmail())
                 .build().toUriString();
 
