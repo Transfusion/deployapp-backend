@@ -17,5 +17,5 @@ else
   --cache-from type=gha .
 fi
 
-docker-compose -f docker-compose.test.yml up --abort-on-container-exit integration-tests
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.test.yml up --abort-on-container-exit integration-tests
 docker-compose -f docker-compose.test.yml down
