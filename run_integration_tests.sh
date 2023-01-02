@@ -14,7 +14,7 @@ else
   echo "Running in GH actions"
   docker buildx build -f Dockerfile-integration-test -t deployapp-integration-test \
   --cache-to type=gha,mode=max \
-  --cache-from type=gha .
+  --cache-from type=gha --load .
 fi
 
 COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.test.yml up --abort-on-container-exit integration-tests
