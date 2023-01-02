@@ -15,12 +15,12 @@
     }
 </style>
 <body>
-    <div>
-    <p style="font-size: 1.5em;">Welcome to <span style="font-weight: bold;">DeployApp</span>!</p>
-    <p>Please click on <a rel="notrack" th:href="${link}">this link</a> to verify your email address.</p>
+<div>
+    <p style="font-size: 1.5em;"><span style="font-weight: bold;">DeployApp</span> email change request</p>
+    <p>Please click on <a rel="notrack" th:href="${link}">this link</a> to change your email address to <span style="font-weight: bold;">[[${new_email}]]</span>.</p>
     <p>The link is only valid for the next [[${valid_minutes}]] minutes.</p>
 
     <p style="padding-top: 50px; font-size: 0.8em">If you have received this email in error, please disregard this message.</p>
-    </div>
+</div>
 </body>
 </html>

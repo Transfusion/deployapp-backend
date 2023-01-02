@@ -1,5 +1,8 @@
 package io.github.transfusion.deployapp.services;
 
+//import io.github.transfusion.deployapp.db.repositories.VerificationTokenRepository;
+
+import io.github.transfusion.deployapp.dto.internal.SendChangeEmailEvent;
 import io.github.transfusion.deployapp.dto.internal.SendVerificationEmailEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,8 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring5.SpringTemplateEngine;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class NotificationService {
@@ -29,7 +31,7 @@ public class NotificationService {
         Context thymeleafContext = new Context();
         Map<String, Object> templateModel = new HashMap<>();
 
-        templateModel.put("verification_link", targetUrl);
+        templateModel.put("link", targetUrl);
         templateModel.put("valid_minutes", tokenValidityDuration / 60);
 //        templateModel.put("timestamp", "");
         thymeleafContext.setVariables(templateModel);
@@ -37,6 +39,22 @@ public class NotificationService {
 
         try {
             emailService.sendHtmlMessage(email, "DeployApp Account Confirmation", htmlBody);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendChangeEmail(String email, String targetUrl) {
+        Context thymeleafContext = new Context();
+        Map<String, Object> templateModel = new HashMap<>();
+
+        templateModel.put("link", targetUrl);
+        templateModel.put("valid_minutes", tokenValidityDuration / 60);
+        thymeleafContext.setVariables(templateModel);
+
+        String htmlBody = thymeleafTemplateEngine.process("change_email_verification.html", thymeleafContext);
+        try {
+            emailService.sendHtmlMessage(email, "DeployApp Email Change", htmlBody);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -50,6 +68,17 @@ public class NotificationService {
                 .build().toUriString();
 
         sendVerificationEmail(event.getEmail(), targetUrl);
+    }
+
+    @EventListener
+    private void initiateChangeEmail(SendChangeEmailEvent event) {
+        String targetUrl = event.getRedirectBaseUrl();
+        targetUrl = UriComponentsBuilder.fromUriString(targetUrl)
+                .queryParam("change_email", event.getToken())
+                .queryParam("new_email", event.getNewEmail())
+                .build().toUriString();
+
+        sendChangeEmail(event.getEmail(), targetUrl);
     }
 
 }

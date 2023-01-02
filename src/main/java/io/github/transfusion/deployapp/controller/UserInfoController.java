@@ -1,5 +1,7 @@
 package io.github.transfusion.deployapp.controller;
 
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
 import io.github.transfusion.deployapp.auth.CustomUserDetailsService;
 import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
 import io.github.transfusion.deployapp.db.repositories.AuthProviderRepository;
@@ -7,8 +9,11 @@ import io.github.transfusion.deployapp.dto.request.*;
 import io.github.transfusion.deployapp.dto.response.*;
 import io.github.transfusion.deployapp.mappers.AuthProviderMapper;
 import io.github.transfusion.deployapp.services.AccountService;
+import io.github.transfusion.deployapp.services.RateLimitService;
+import io.github.transfusion.deployapp.utils.RateLimitUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -66,6 +71,31 @@ public class UserInfoController {
     }
 
     @Autowired
+    private RateLimitService rateLimitService;
+
+    @PostMapping("change_email")
+    @PreAuthorize("hasRole('ROLE_USER')") // cannot be anonymous
+    public ResponseEntity<Void> changeEmail(HttpServletRequest request, @RequestBody ChangeEmailRequest changeEmailRequest) throws URISyntaxException {
+        baseUrlCheck(request, changeEmailRequest.getRedirectBaseUrl());
+
+        SecurityContext context = SecurityContextHolder.getContext();
+        Authentication authentication = context.getAuthentication();
+        CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+        UUID id = principal.getId();
+
+        Bucket bucket = rateLimitService.resolveBucket("change_email",
+                id + "_" + changeEmailRequest.getEmail(), RateLimitService.AVAILABLE_CONFIGURATIONS.EMAIL_RATELIMIT);
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+
+        if (!probe.isConsumed()) {
+            return RateLimitUtils.tooManyRequestsResponse(probe, null);
+        } else {
+            accountService.changeEmail(changeEmailRequest.getEmail(), changeEmailRequest.getRedirectBaseUrl());
+            return new ResponseEntity<>(null, HttpStatus.OK);
+        }
+    }
+
+    @Autowired
     private AuthProviderRepository authProviderRepository;
 
     @Autowired
@@ -119,10 +149,23 @@ public class UserInfoController {
     public ResponseEntity<ResendVerificationResultDTO> resendVerification(HttpServletRequest request, @RequestBody ResendVerificationRequest resendVerificationRequest) throws URISyntaxException {
         baseUrlCheck(request, resendVerificationRequest.getRedirectBaseUrl());
 
-        ResendVerificationResultDTO resultDTO = accountService.resendVerification(resendVerificationRequest.getEmail(),
-                resendVerificationRequest.getNewEmail(), resendVerificationRequest.getRedirectBaseUrl());
+        SecurityContext context = SecurityContextHolder.getContext();
+        Authentication authentication = context.getAuthentication();
+        CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+        UUID id = principal.getId();
 
-        return new ResponseEntity<>(resultDTO, resultDTO.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
+        Bucket bucket = rateLimitService.resolveBucket("resend_verification",
+                id + "_" + resendVerificationRequest.getNewEmail(), RateLimitService.AVAILABLE_CONFIGURATIONS.EMAIL_RATELIMIT);
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+
+        if (!probe.isConsumed()) {
+            return RateLimitUtils.tooManyRequestsResponse(probe, null);
+        } else {
+            ResendVerificationResultDTO resultDTO = accountService.resendVerification(resendVerificationRequest.getEmail(),
+                    resendVerificationRequest.getNewEmail(), resendVerificationRequest.getRedirectBaseUrl());
+
+            return new ResponseEntity<>(resultDTO, resultDTO.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PostMapping("verify")

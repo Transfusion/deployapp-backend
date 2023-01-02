@@ -48,7 +48,7 @@ public class RateLimitService {
             case EMAIL_RATELIMIT:
             default:
                 return () -> BucketConfiguration.builder()
-                        .addLimit(Bandwidth.simple(email_retry_rate_limit_capacity, Duration.ofSeconds(emailRetryRateLimitDuration))).build();
+                        .addLimit(Bandwidth.simple(email_retry_rate_limit_capacity, Duration.ofMinutes(emailRetryRateLimitDuration))).build();
         }
     }
 }
