@@ -6,6 +6,8 @@
 # docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from integration-tests integration-tests
 # docker-compose -f docker-compose.test.yml down
 
-docker build -f Dockerfile-integration-test -t deployapp-integration-test .
+docker buildx build -f Dockerfile-integration-test -t deployapp-integration-test \
+--cache-to type=gha,mode=max \
+--cache-from type=gha .
 docker-compose -f docker-compose.test.yml up integration-tests  --abort-on-container-exit
 docker-compose -f docker-compose.test.yml down
