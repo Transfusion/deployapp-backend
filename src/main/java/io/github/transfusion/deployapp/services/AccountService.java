@@ -1,14 +1,11 @@
 package io.github.transfusion.deployapp.services;
 
 import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
-import io.github.transfusion.deployapp.db.entities.ChangeEmailVerificationToken;
-import io.github.transfusion.deployapp.db.entities.SignupVerificationToken;
-import io.github.transfusion.deployapp.db.entities.User;
-import io.github.transfusion.deployapp.db.entities.VerificationToken;
+import io.github.transfusion.deployapp.db.entities.*;
 import io.github.transfusion.deployapp.db.repositories.*;
 import io.github.transfusion.deployapp.dto.internal.SendChangeEmailEvent;
+import io.github.transfusion.deployapp.dto.internal.SendResetPasswordEmailEvent;
 import io.github.transfusion.deployapp.dto.internal.SendVerificationEmailEvent;
-import io.github.transfusion.deployapp.dto.request.ChangeEmailRequest;
 import io.github.transfusion.deployapp.dto.request.PatchProfileRequest;
 import io.github.transfusion.deployapp.dto.response.LoginResultDTO;
 import io.github.transfusion.deployapp.dto.response.RegisterResultDTO;
@@ -29,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -200,6 +196,43 @@ public class AccountService {
                 user.getEmail(), redirectBaseUrl, token.getId().toString()));
 
         return new ResendVerificationResultDTO(true, emailChanged);
+    }
+
+    @Autowired
+    private ResetPasswordVerificationTokenRepository resetPasswordVerificationTokenRepository;
+
+    public boolean resetPassword(String email, String redirectBaseUrl) {
+        Optional<User> _user = userRepository.findByEmail(email);
+        if (_user.isEmpty()) return false;
+        User user = _user.get();
+
+        // delete all existing tokens
+        resetPasswordVerificationTokenRepository.deleteByUserId(user.getId());
+        // generate and save a random token
+        UUID randomUUID = UUID.randomUUID();
+        ResetPasswordVerificationToken token = new ResetPasswordVerificationToken();
+        token.setCreatedOn(Instant.now());
+        token.setId(randomUUID);
+        token.setUserId(user.getId());
+        token.setExpiry(Instant.now().plusSeconds(tokenValidityDuration));
+        resetPasswordVerificationTokenRepository.save(token);
+        // fire off email
+        eventPublisher.publishEvent(new SendResetPasswordEmailEvent(
+                email, redirectBaseUrl, randomUUID.toString()
+        ));
+        return true;
+    }
+
+    public boolean confirmResetPassword(UUID tokenId, String password) {
+        Optional<ResetPasswordVerificationToken> _token = resetPasswordVerificationTokenRepository.findById(tokenId);
+        if (_token.isEmpty()) return false;
+        ResetPasswordVerificationToken token = _token.get();
+        // if already expired
+        if (token.getExpiry().isBefore(Instant.now())) return false;
+        token.getUser().setPassword(passwordEncoder.encode(password));
+        userRepository.save(token.getUser());
+        resetPasswordVerificationTokenRepository.delete(token);
+        return true;
     }
 
     @Autowired

@@ -3,6 +3,7 @@ package io.github.transfusion.deployapp.services;
 //import io.github.transfusion.deployapp.db.repositories.VerificationTokenRepository;
 
 import io.github.transfusion.deployapp.dto.internal.SendChangeEmailEvent;
+import io.github.transfusion.deployapp.dto.internal.SendResetPasswordEmailEvent;
 import io.github.transfusion.deployapp.dto.internal.SendVerificationEmailEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,12 +50,30 @@ public class NotificationService {
         Map<String, Object> templateModel = new HashMap<>();
 
         templateModel.put("link", targetUrl);
+        templateModel.put("new_email", email);
         templateModel.put("valid_minutes", tokenValidityDuration / 60);
         thymeleafContext.setVariables(templateModel);
 
         String htmlBody = thymeleafTemplateEngine.process("change_email_verification.html", thymeleafContext);
         try {
             emailService.sendHtmlMessage(email, "DeployApp Email Change", htmlBody);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendPasswordResetEmail(String email, String targetUrl) {
+        Context thymeleafContext = new Context();
+        Map<String, Object> templateModel = new HashMap<>();
+
+        templateModel.put("link", targetUrl);
+        templateModel.put("email", email);
+        templateModel.put("valid_minutes", tokenValidityDuration / 60);
+        thymeleafContext.setVariables(templateModel);
+
+        String htmlBody = thymeleafTemplateEngine.process("password_reset.html", thymeleafContext);
+        try {
+            emailService.sendHtmlMessage(email, "DeployApp Password Reset", htmlBody);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -79,6 +98,16 @@ public class NotificationService {
                 .build().toUriString();
 
         sendChangeEmail(event.getEmail(), targetUrl);
+    }
+
+    @EventListener
+    private void passwordReset(SendResetPasswordEmailEvent event) {
+        String targetUrl = event.getRedirectBaseUrl();
+        targetUrl = UriComponentsBuilder.fromUriString(targetUrl)
+                .queryParam("confirm_reset_password", event.getToken())
+                .build().toUriString();
+
+        sendPasswordResetEmail(event.getEmail(), targetUrl);
     }
 
 }

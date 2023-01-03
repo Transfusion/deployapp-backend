@@ -73,6 +73,29 @@ public class UserInfoController {
     @Autowired
     private RateLimitService rateLimitService;
 
+    @PostMapping("reset_password") // anonymous, anyone can reset their password.
+    public ResponseEntity<Void> resetPassword(HttpServletRequest request,
+                                              @RequestBody ResetPasswordRequest resetPasswordRequest) throws URISyntaxException {
+        baseUrlCheck(request, resetPasswordRequest.getRedirectBaseUrl());
+
+        Bucket bucket = rateLimitService.resolveBucket("reset_password",
+                resetPasswordRequest.getEmail(), RateLimitService.AVAILABLE_CONFIGURATIONS.EMAIL_RATELIMIT);
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        if (!probe.isConsumed()) {
+            return RateLimitUtils.tooManyRequestsResponse(probe, null);
+        } else {
+            accountService.resetPassword(resetPasswordRequest.getEmail(), resetPasswordRequest.getRedirectBaseUrl());
+            return new ResponseEntity<>(null, HttpStatus.OK);
+        }
+    }
+
+    @PostMapping("confirm_reset_password")
+    public ResponseEntity<Void> confirmResetPassword(@RequestBody ConfirmResetPasswordRequest request) {
+        boolean ok = accountService.confirmResetPassword(request.getToken(), request.getPassword());
+        if (ok) customUserDetailsService.reloadUserPrincipal();
+        return new ResponseEntity<>(ok ? HttpStatus.OK : HttpStatus.FORBIDDEN);
+    }
+
     @PostMapping("change_email")
     @PreAuthorize("hasRole('ROLE_USER')") // cannot be anonymous
     public ResponseEntity<Void> changeEmail(HttpServletRequest request, @RequestBody ChangeEmailRequest changeEmailRequest) throws URISyntaxException {

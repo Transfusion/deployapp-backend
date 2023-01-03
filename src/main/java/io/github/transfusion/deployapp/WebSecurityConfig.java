@@ -62,7 +62,7 @@ public class WebSecurityConfig {
 
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider(PasswordEncoder passwordEncoder,
-                                                               UserDetailsService userDetailsService){
+                                                               UserDetailsService userDetailsService) {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
         daoAuthenticationProvider.setUserDetailsService(userDetailsService);
@@ -88,7 +88,8 @@ public class WebSecurityConfig {
                 // authorize all requests to the /oauth2 endpoint
                 .authorizeRequests()
                 .antMatchers("/oauth2/**", "/api-docs/**", "/api/logout", "/api/*/user/profile",
-                        "/api/*/user/register", "/api/*/user/verify", "/api/*/user/login", "/api/*/user/resend_verification", "/api/*/credentials/**",
+                        "/api/*/user/register", "/api/*/user/verify", "/api/*/user/login", "/api/*/user/reset_password",
+                        "/api/*/user/confirm_reset_password", "/api/*/user/resend_verification", "/api/*/credentials/**",
                         "/api/*/utility/public/**", "/microservice-api/**")
                 .permitAll()
                 .anyRequest().authenticated()
