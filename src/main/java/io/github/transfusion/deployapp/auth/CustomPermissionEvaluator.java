@@ -33,7 +33,7 @@ public class CustomPermissionEvaluator implements PermissionEvaluator {
             return sessionData.getAnonymousCredentials().contains(id);
 
         // TODO: handle organizations!
-        return credential.getUser().getId() == ((CustomUserPrincipal) authentication.getPrincipal()).getId();
+        return credential.getUser().getId().equals(((CustomUserPrincipal) authentication.getPrincipal()).getId());
     }
 
     @Override
