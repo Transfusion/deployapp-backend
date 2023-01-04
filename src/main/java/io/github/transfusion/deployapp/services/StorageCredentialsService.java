@@ -190,4 +190,16 @@ public class StorageCredentialsService {
     public Optional<StorageCredentialDTO> findById(UUID id) {
         return storageCredentialRepository.findById(id).map(storageCredentialMapper::toDTO);
     }
+
+    /**
+     * Assigns anonymous credentials in the {@link SessionData} to the given user id
+     *
+     * @param userId {@link UUID} of the {@link User}
+     */
+    public void migrateAnonymousData(UUID userId) {
+        if (sessionData.getAnonymousCredentials().isEmpty()) return;
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        storageCredentialRepository.migrateAnonymousStorageCredentials(user, sessionData.getAnonymousCredentials());
+        sessionData.getAnonymousCredentials().clear();
+    }
 }

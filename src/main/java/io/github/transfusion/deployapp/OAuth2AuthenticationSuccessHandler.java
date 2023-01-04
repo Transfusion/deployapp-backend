@@ -1,5 +1,8 @@
 package io.github.transfusion.deployapp;
 
+import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
+import io.github.transfusion.deployapp.services.StorageCredentialsService;
+import io.github.transfusion.deployapp.session.SessionData;
 import io.github.transfusion.deployapp.utils.CookieUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -11,11 +14,17 @@ import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.Optional;
+import java.util.UUID;
 
 import static io.github.transfusion.deployapp.HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME;
 
+/**
+ * https://stackoverflow.com/questions/30697202/setting-session-scoped-objects-in-authenticationsuccesshandler
+ */
 @Component
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
@@ -35,11 +44,29 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         this.httpCookieOAuth2AuthorizationRequestRepository = httpCookieOAuth2AuthorizationRequestRepository;
     }
 
+    @Autowired
+    private StorageCredentialsService storageCredentialsService;
+
+    @Autowired
+    private SessionData sessionData;
+
+    @Autowired
+    private HttpSession httpSession;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
         System.out.println(authentication.getDetails());
 
+        // clone the session temporarily
+        Enumeration<String> keys = request.getSession().getAttributeNames();
+        while (keys.hasMoreElements()) {
+            String key = keys.nextElement();
+            httpSession.setAttribute(key, request.getSession().getValue(key));
+        }
+
+        UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
+        storageCredentialsService.migrateAnonymousData(userId);
         String targetUrl = determineTargetUrl(request, response, authentication);
 
         if (response.isCommitted()) {

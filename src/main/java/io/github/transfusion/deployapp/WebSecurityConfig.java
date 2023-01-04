@@ -3,10 +3,13 @@ package io.github.transfusion.deployapp;
 import io.github.transfusion.deployapp.auth.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DefaultAuthenticationEventPublisher;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -67,6 +70,13 @@ public class WebSecurityConfig {
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
         daoAuthenticationProvider.setUserDetailsService(userDetailsService);
         return daoAuthenticationProvider;
+    }
+
+    // https://docs.spring.io/spring-security/reference/servlet/authentication/events.html
+    @Bean
+    public AuthenticationEventPublisher authenticationEventPublisher
+    (ApplicationEventPublisher applicationEventPublisher) {
+        return new DefaultAuthenticationEventPublisher(applicationEventPublisher);
     }
 
     @Value("${custom_cors.origins}")
