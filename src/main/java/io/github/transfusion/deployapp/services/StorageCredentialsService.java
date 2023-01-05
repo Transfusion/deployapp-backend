@@ -196,7 +196,7 @@ public class StorageCredentialsService {
      *
      * @param userId {@link UUID} of the {@link User}
      */
-    public void migrateAnonymousData(UUID userId) {
+    public void migrateAnonymousCredentials(UUID userId) {
         if (sessionData.getAnonymousCredentials().isEmpty()) return;
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         storageCredentialRepository.migrateAnonymousStorageCredentials(user, sessionData.getAnonymousCredentials());

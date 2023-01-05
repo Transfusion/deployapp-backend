@@ -1,7 +1,7 @@
 package io.github.transfusion.deployapp;
 
 import io.github.transfusion.deployapp.auth.CustomUserPrincipal;
-import io.github.transfusion.deployapp.services.StorageCredentialsService;
+import io.github.transfusion.deployapp.services.MigrationService;
 import io.github.transfusion.deployapp.session.SessionData;
 import io.github.transfusion.deployapp.utils.CookieUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ import java.util.UUID;
 import static io.github.transfusion.deployapp.HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME;
 
 /**
- * https://stackoverflow.com/questions/30697202/setting-session-scoped-objects-in-authenticationsuccesshandler
+ * <a href="https://stackoverflow.com/questions/30697202/setting-session-scoped-objects-in-authenticationsuccesshandler">See here</a>
  */
 @Component
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -45,7 +45,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     @Autowired
-    private StorageCredentialsService storageCredentialsService;
+    private MigrationService migrationService;
 
     @Autowired
     private SessionData sessionData;
@@ -66,7 +66,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         }
 
         UUID userId = ((CustomUserPrincipal) authentication.getPrincipal()).getId();
-        storageCredentialsService.migrateAnonymousData(userId);
+        migrationService.migrateAnonymousData(userId);
         String targetUrl = determineTargetUrl(request, response, authentication);
 
         if (response.isCommitted()) {
