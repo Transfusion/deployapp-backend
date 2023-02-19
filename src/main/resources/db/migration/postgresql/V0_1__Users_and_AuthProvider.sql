@@ -24,6 +24,7 @@ CREATE TABLE "auth_provider" (
     "provider_key" varchar(255) NOT NULL,
     "user_id" uuid NOT NULL,
     "provider_name" varchar(20) NOT NULL,
+    "provider_info_name" text,
     CONSTRAINT "auth_provider_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id"),
     PRIMARY KEY ("provider_name","user_id")
 );
