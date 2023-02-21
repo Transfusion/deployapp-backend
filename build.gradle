@@ -57,6 +57,12 @@ dependencies {
     implementation group: 'commons-net', name: 'commons-net', version: '3.8.0'
 }
 
+bootRun {
+    if ( project.hasProperty('jvmArgs') ) {
+		jvmArgs project.jvmArgs.split('\\s+')
+	}
+}
+
 test {
     useJUnitPlatform()
 }
