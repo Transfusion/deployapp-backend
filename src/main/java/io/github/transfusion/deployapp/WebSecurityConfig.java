@@ -100,7 +100,7 @@ public class WebSecurityConfig {
                 .antMatchers("/oauth2/**", "/api-docs/**", "/api/logout", "/api/*/user/profile",
                         "/api/*/user/register", "/api/*/user/verify", "/api/*/user/login", "/api/*/user/reset_password",
                         "/api/*/user/confirm_reset_password", "/api/*/user/resend_verification", "/api/*/credentials/**",
-                        "/api/*/utility/public/**", "/microservice-api/**")
+                        "/api/*/utility/public/**", "/microservice-api/**", "/actuator/**")
                 .permitAll()
                 .anyRequest().authenticated()
                 .and()

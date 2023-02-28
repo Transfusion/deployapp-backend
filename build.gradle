@@ -4,6 +4,11 @@ plugins {
     id 'java'
     id "org.jetbrains.kotlin.jvm" version "1.7.0"
     id "org.jetbrains.kotlin.kapt" version "1.7.0"
+    id "com.gorylenko.gradle-git-properties" version "2.4.1" // for telling the frontend details about the backend instance
+}
+
+gitProperties {
+    failOnNoGitDirectory = false
 }
 
 group = 'io.github.transfusion'
@@ -40,7 +45,7 @@ dependencies {
     implementation 'org.mapstruct:mapstruct:1.5.2.Final'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.2.Final'
     kapt 'org.mapstruct:mapstruct-processor:1.5.2.Final'
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.9'
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     implementation 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
 
