@@ -12,7 +12,6 @@ gitProperties {
 }
 
 group = 'io.github.transfusion'
-version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '11'
 
 repositories {
@@ -60,6 +59,10 @@ dependencies {
 
     // https://mvnrepository.com/artifact/commons-net/commons-net
     implementation group: 'commons-net', name: 'commons-net', version: '3.9.0'
+}
+
+bootJar {
+    archiveFileName = 'deployapp-backend.jar'
 }
 
 bootRun {
