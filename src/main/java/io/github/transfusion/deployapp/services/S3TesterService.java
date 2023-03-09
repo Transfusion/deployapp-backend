@@ -89,8 +89,7 @@ public class S3TesterService {
                     });
             var policyStatementList = (List<LinkedHashMap<String, String>>) policyJSONMap.get("Statement");
 
-            String bucketPublicPolicyStatementTemplate = new String(Files.readAllBytes(publicPolicyStatementFile
-                    .getFile().toPath()));
+            String bucketPublicPolicyStatementTemplate = new String(publicPolicyStatementFile.getInputStream().readAllBytes());
 
             String policyStatement = stringSubstitutor.replace(bucketPublicPolicyStatementTemplate);
 
@@ -99,8 +98,7 @@ public class S3TesterService {
             policyStatementList.add(newStatement);
             newPolicyJSON = objectMapper.writeValueAsString(policyJSONMap);
         } else {
-            String bucketPublicPolicyTemplate = new String(Files.readAllBytes(publicPolicyFile
-                    .getFile().toPath()));
+            String bucketPublicPolicyTemplate = new String(publicPolicyFile.getInputStream().readAllBytes());
 
             newPolicyJSON = stringSubstitutor.replace(bucketPublicPolicyTemplate);
         }
