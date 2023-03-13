@@ -10,7 +10,7 @@ Even though `deployapp-backend` does not currently use any GraalVM-specific feat
 
 There are many scenarios where it is useful to run `deployapp-backend` independently, such as when trying to expose a local instance of `deployapp-backend` through a K8s cluster via [Telepresence](https://www.telepresence.io/) and `kubectl port-forward`.
 
-Copy `application-dev.yml` to `src/main/resources` and edit it [accordingly](https://github.com/Transfusion/deployapp-platform#running-development), then run
+Copy [`application-dev.yml`](https://github.com/Transfusion/deployapp-platform/blob/dev/deployapp-backend-config/application-dev.yml) to [`src/main/resources`](https://github.com/Transfusion/deployapp-backend/tree/main/src/main/resources) and edit it [accordingly](https://github.com/Transfusion/deployapp-platform#running-development), then run
 
 ```shell
 JAVA_HOME=/path/to/jdk/Home SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
