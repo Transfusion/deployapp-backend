@@ -10,10 +10,10 @@ import io.github.transfusion.deployapp.dto.response.*;
 import io.github.transfusion.deployapp.mappers.AuthProviderMapper;
 import io.github.transfusion.deployapp.services.AccountService;
 import io.github.transfusion.deployapp.services.RateLimitService;
+import io.github.transfusion.deployapp.session.SessionData;
 import io.github.transfusion.deployapp.utils.RateLimitUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -37,13 +37,18 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/user")
 public class UserInfoController {
+
+    @Autowired
+    private SessionData sessionData;
+
     @Operation(summary = "Gets the profile of the currently logged in user", description = "Used in the AuthContext of the React frontend", tags = {"auth"})
     @GetMapping("profile")
     public ProfileDTO profile() {
         SecurityContext context = SecurityContextHolder.getContext();
         Authentication authentication = context.getAuthentication();
         if (authentication instanceof AnonymousAuthenticationToken)
-            return new ProfileDTO(false, null, false, "anonymous", "Anonymous", null, false, false, null);
+            return new ProfileDTO(false, null, false, "anonymous", "Anonymous", null, false, false, null,
+                    !sessionData.getAnonymousCredentials().isEmpty() || !sessionData.getAnonymousAppBinaries().isEmpty());
 //        authentication.getPrincipal()
         else {
             boolean oauth_login = authentication instanceof OAuth2AuthenticationToken;
@@ -51,7 +56,8 @@ public class UserInfoController {
             if (oauth_login)
                 oauth_registration_id = ((OAuth2AuthenticationToken) authentication).getAuthorizedClientRegistrationId();
             CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
-            return new ProfileDTO(true, principal.getId(), principal.hasUsername(), principal.getUsername(), principal.getName(), principal.getEmail(), principal.hasPassword(), authentication instanceof OAuth2AuthenticationToken, oauth_registration_id);
+            return new ProfileDTO(true, principal.getId(), principal.hasUsername(), principal.getUsername(), principal.getName(), principal.getEmail(), principal.hasPassword(), authentication instanceof OAuth2AuthenticationToken, oauth_registration_id,
+                    !sessionData.getAnonymousCredentials().isEmpty() || !sessionData.getAnonymousAppBinaries().isEmpty());
         }
     }
 

@@ -12,5 +12,7 @@ data class ProfileDTO(
     val has_password: Boolean,
 
     val oauth_login: Boolean,
-    val oauth_registration_id: String? // null if oauth_login is false
+    val oauth_registration_id: String?, // null if oauth_login is false
+
+    val has_anonymous_data: Boolean
 )
